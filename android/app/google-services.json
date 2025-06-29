@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1013957411281",
+    "project_id": "gymtrack-97029",
+    "storage_bucket": "gymtrack-97029.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1013957411281:android:59c92c55ab43fb379ba0f0",
+        "android_client_info": {
+          "package_name": "com.example.gymtrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRs6kHNjr6lbnBjWUw6qPiRQ2U8g7NSWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
