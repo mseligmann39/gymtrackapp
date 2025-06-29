@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/exercise.dart';
 import '../services/exercise_service.dart';
 import 'add_exercise_screen.dart';
-
+import 'edit_exercise_screen.dart';
 class ExerciseListScreen extends StatefulWidget {
   const ExerciseListScreen({super.key});
 
@@ -38,13 +38,18 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
     _refresh();
   }
 
-  void _editExercise(Exercise exercise) {
-    // Aquí puedes hacer la navegación a pantalla de edición (más adelante)
-    // Por ahora, solo un mensaje:
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Editar ejercicio: ${exercise.name} (pendiente)')),
-    );
+  void _editExercise(Exercise exercise) async {
+  final result = await Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => EditExerciseScreen(exercise: exercise),
+    ),
+  );
+
+  if (result == true) {
+    _refresh();
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
