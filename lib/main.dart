@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart'; // IMPORTANTE: Nueva importación
+import 'package:provider/provider.dart';
+
+// Importaciones para localización
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/welcome_screen.dart';
 import 'screens/home_screen.dart';
+import 'firebase_options.dart'; // Asegúrate de que este import sea correcto
 
 void main() async {
+  // Asegura que los bindings de Flutter estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
-  // Esta parte no cambia.
+  // Inicializa Firebase
   await Firebase.initializeApp(
-    // tus opciones de firebase_options.dart irán aquí si las especificas
+    options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Corre la aplicación
   runApp(const GimFitApp());
 }
 
@@ -20,24 +26,21 @@ class GimFitApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // --- CAMBIO PRINCIPAL ---
-    // Envolvemos toda la app en un MultiProvider.
-    // Esto nos permitirá "proveer" diferentes piezas de estado.
+    // Envolvemos la app en MultiProvider para gestionar el estado
     return MultiProvider(
       providers: [
-        // NUEVO: Este es nuestro primer "enchufe".
-        // StreamProvider escucha el stream de authStateChanges y expone
-        // el objeto User? más reciente a todos los widgets descendientes.
+        // Este provider escucha los cambios de autenticación de Firebase
         StreamProvider<User?>.value(
           value: FirebaseAuth.instance.authStateChanges(),
           initialData: null,
         ),
       ],
-
-      // En main.dart, dentro de tu widget GimFitApp
+      // El hijo del provider es nuestra aplicación principal
       child: MaterialApp(
         title: 'GimFit',
         debugShowCheckedModeBanner: false,
+
+        // --- CONFIGURACIÓN DE TEMA ---
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
@@ -46,9 +49,6 @@ class GimFitApp extends StatelessWidget {
             backgroundColor: Colors.white,
             foregroundColor: Colors.black87,
           ),
-          // --- CORRECCIÓN DEFINITIVA ---
-          // 1. Cambiamos el nombre a CardThemeData
-          // 2. Quitamos 'const' para asegurar la compatibilidad
           cardTheme: CardThemeData(
             elevation: 1,
             shape: RoundedRectangleBorder(
@@ -56,28 +56,41 @@ class GimFitApp extends StatelessWidget {
             ),
           ),
         ),
+
+        // --- CONFIGURACIÓN DE LOCALIZACIÓN (AQUÍ ES DONDE VA) ---
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en', ''), // Inglés
+          Locale('es', ''), // Español
+        ],
+        locale: const Locale('es'), // Opcional: Forzar el idioma a español
+
+        // La pantalla de inicio es manejada por nuestro AuthStateHandler
         home: const AuthStateHandler(),
       ),
     );
   }
 }
 
+// Este widget decide qué pantalla mostrar basado en el estado de autenticación
 class AuthStateHandler extends StatelessWidget {
   const AuthStateHandler({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // --- CÓDIGO SIMPLIFICADO ---
-    // Ya no necesitamos un StreamBuilder aquí.
-    // Simplemente "consumimos" el usuario que nuestro StreamProvider ya nos da.
-    // context.watch<User?>() se suscribe a los cambios del usuario.
+    // Escuchamos el estado del usuario provisto por nuestro StreamProvider
     final user = context.watch<User?>();
 
+    // Si hay un usuario, mostramos la HomeScreen
     if (user != null) {
-      // Si hay usuario logueado, va a home.
       return const HomeScreen();
-    } else {
-      // Si no hay usuario, va a welcome/login.
+    } 
+    // Si no, mostramos la WelcomeScreen para que inicie sesión o se registre
+    else {
       return const WelcomeScreen();
     }
   }

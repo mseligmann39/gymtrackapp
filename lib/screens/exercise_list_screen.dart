@@ -3,6 +3,9 @@ import '../models/exercise.dart';
 import '../services/exercise_service.dart';
 import 'add_exercise_screen.dart';
 import 'edit_exercise_screen.dart';
+import 'active_workout_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/workout_provider.dart';
 
 class ExerciseListScreen extends StatefulWidget {
   const ExerciseListScreen({super.key});
@@ -64,26 +67,25 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
     );
   }
 
+  // En lib/screens/exercise_list_screen.dart
+
+// ... (El resto del archivo no cambia)
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Ejercicios'),
       ),
-      // CAMBIO PRINCIPAL: Usamos StreamBuilder en lugar de FutureBuilder.
       body: StreamBuilder<List<Exercise>>(
-        // Nos conectamos al nuevo método del servicio.
         stream: _exerciseService.getExercisesStream(),
         builder: (context, snapshot) {
-          // El estado 'waiting' ahora muestra un loader mientras se establece la conexión inicial.
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          // El manejo de errores es muy importante.
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          // Si no hay datos (o la lista está vacía), mostramos un mensaje amigable.
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Column(
@@ -92,24 +94,39 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                   Icon(Icons.list_alt_rounded, size: 80, color: Colors.grey),
                   SizedBox(height: 16),
                   Text('Aún no tienes ejercicios', style: TextStyle(fontSize: 18)),
-                  Text('¡Añade tu primer ejercicio con el botón +!', style: TextStyle(color: Colors.grey)),
+                  Text('Toca un ejercicio para iniciar una rutina', style: TextStyle(color: Colors.grey)),
+                  Text('o añade uno nuevo con el botón +', style: TextStyle(color: Colors.grey)),
                 ],
               )
             );
           }
 
-          // Si todo va bien, mostramos la lista.
           final exercises = snapshot.data!;
           return ListView.builder(
             itemCount: exercises.length,
             itemBuilder: (context, index) {
               final ex = exercises[index];
-              // Usamos un Card para un look más moderno.
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: ListTile(
                   title: Text(ex.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(ex.muscleGroup),
+                  // --- CAMBIO AQUÍ ---
+                  // Añadimos la acción onTap para iniciar el entrenamiento.
+                 onTap: () {
+  // --- CAMBIO AQUÍ ---
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      // Envolvemos la pantalla de entrenamiento con el Provider
+      builder: (_) => ChangeNotifierProvider(
+        // Creamos una NUEVA instancia del provider cada vez que empezamos un entrenamiento
+        create: (context) => WorkoutProvider(startingExercise: ex),
+        // El hijo es nuestra pantalla, que ahora tendrá acceso al Provider
+        child: const ActiveWorkoutScreen(),
+      ),
+    ),
+  );
+},
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -138,4 +155,6 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       ),
     );
   }
+  
 }
+
