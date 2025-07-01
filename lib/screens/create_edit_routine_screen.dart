@@ -19,8 +19,10 @@ class _CreateEditRoutineScreenState extends State<CreateEditRoutineScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   
-  final Set<String> _selectedExerciseIds = {};
+  // Lista de los ejercicios seleccionados para la rutina (esta será reordenable)
+  List<Exercise> _selectedExercises = [];
   
+  // Lista de todos los ejercicios disponibles para el usuario
   List<Exercise> _availableExercises = [];
   bool _isLoading = true;
   bool _isSaving = false;
@@ -32,26 +34,30 @@ class _CreateEditRoutineScreenState extends State<CreateEditRoutineScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.routineToEdit?.name ?? '');
-    if (widget.routineToEdit != null) {
-      _selectedExerciseIds.addAll(widget.routineToEdit!.exerciseIds);
-    }
-    _loadAvailableExercises();
+    _loadData();
   }
 
-  Future<void> _loadAvailableExercises() async {
+  // Carga todos los ejercicios y configura la lista de seleccionados si estamos editando
+  Future<void> _loadData() async {
     try {
-      final exercises = await _exerciseService.getExercises();
-      if(mounted) {
+      final allExercises = await _exerciseService.getExercises();
+      if (mounted) {
         setState(() {
-          _availableExercises = exercises;
+          _availableExercises = allExercises;
+          // Si estamos editando, poblamos la lista de seleccionados en el orden correcto
+          if (widget.routineToEdit != null) {
+            _selectedExercises = widget.routineToEdit!.exerciseIds.map((id) {
+              return allExercises.firstWhere((ex) => ex.id == id, orElse: () => Exercise(id: '', name: 'Ejercicio no encontrado', description: '', muscleGroup: ''));
+            }).where((ex) => ex.id.isNotEmpty).toList();
+          }
           _isLoading = false;
         });
       }
     } catch (e) {
-      if(mounted) {
+      if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar ejercicios: $e')),
+          SnackBar(content: Text('Error al cargar datos: $e')),
         );
       }
     }
@@ -65,9 +71,9 @@ class _CreateEditRoutineScreenState extends State<CreateEditRoutineScreen> {
 
   Future<void> _saveRoutine() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedExerciseIds.isEmpty) {
+    if (_selectedExercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes seleccionar al menos un ejercicio.')),
+        const SnackBar(content: Text('Debes añadir al menos un ejercicio a la rutina.')),
       );
       return;
     }
@@ -78,10 +84,11 @@ class _CreateEditRoutineScreenState extends State<CreateEditRoutineScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // Creamos la rutina con la lista de IDs en el nuevo orden
       final routine = Routine(
         id: widget.routineToEdit?.id,
         name: _nameController.text.trim(),
-        exerciseIds: _selectedExerciseIds.toList(),
+        exerciseIds: _selectedExercises.map((ex) => ex.id).toList(), // ¡El orden se preserva aquí!
         userId: user.uid,
       );
 
@@ -98,14 +105,9 @@ class _CreateEditRoutineScreenState extends State<CreateEditRoutineScreen> {
       Navigator.of(context).pop();
 
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar la rutina: $e')),
-      );
+      // Manejo de errores
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -116,17 +118,8 @@ class _CreateEditRoutineScreenState extends State<CreateEditRoutineScreen> {
       appBar: AppBar(
         title: Text(isEditing ? 'Editar Rutina' : 'Crear Rutina'),
         actions: [
-          if (_isSaving)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveRoutine,
-              tooltip: 'Guardar Rutina',
-            )
+          if (_isSaving) const Padding(padding: EdgeInsets.all(16.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
+          else IconButton(icon: const Icon(Icons.save), onPressed: _saveRoutine, tooltip: 'Guardar Rutina')
         ],
       ),
       body: _isLoading
@@ -139,37 +132,84 @@ class _CreateEditRoutineScreenState extends State<CreateEditRoutineScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre de la Rutina',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Nombre de la Rutina', border: OutlineInputBorder()),
                       validator: (value) => (value == null || value.isEmpty) ? 'El nombre es obligatorio' : null,
                     ),
                   ),
                   const Divider(height: 1),
+                  
+                  // --- NUEVA SECCIÓN REORDENABLE ---
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Text('Selecciona los ejercicios:', style: Theme.of(context).textTheme.titleMedium),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text('Ejercicios en la rutina (arrastra para ordenar):', style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  Expanded(
+                    // Usamos ReorderableListView para permitir arrastrar y soltar
+                    child: ReorderableListView.builder(
+                      itemCount: _selectedExercises.length,
+                      itemBuilder: (context, index) {
+                        final exercise = _selectedExercises[index];
+                        return Card(
+                          key: ValueKey(exercise.id), // La key es crucial para que funcione
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: ListTile(
+                            title: Text(exercise.name),
+                            // El icono para iniciar el arrastre
+                            leading: ReorderableDragStartListener(
+                              index: index,
+                              child: const Icon(Icons.drag_handle),
+                            ),
+                            // Botón para quitar el ejercicio de la rutina
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedExercises.removeAt(index);
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      // La función que se llama cuando el usuario suelta un elemento
+                      onReorder: (int oldIndex, int newIndex) {
+                        setState(() {
+                          if (oldIndex < newIndex) {
+                            newIndex -= 1;
+                          }
+                          final Exercise item = _selectedExercises.removeAt(oldIndex);
+                          _selectedExercises.insert(newIndex, item);
+                        });
+                      },
+                    ),
+                  ),
+                  
+                  const Divider(height: 1),
+                  // --- SECCIÓN PARA AÑADIR MÁS EJERCICIOS ---
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text('Añadir ejercicios disponibles:', style: Theme.of(context).textTheme.titleMedium),
                   ),
                   Expanded(
                     child: ListView.builder(
                       itemCount: _availableExercises.length,
                       itemBuilder: (context, index) {
                         final exercise = _availableExercises[index];
-                        final isSelected = _selectedExerciseIds.contains(exercise.id);
-                        return CheckboxListTile(
+                        // Solo mostramos los ejercicios que NO están ya en la rutina
+                        if (_selectedExercises.any((e) => e.id == exercise.id)) {
+                          return const SizedBox.shrink(); // No mostrar si ya está seleccionado
+                        }
+                        return ListTile(
                           title: Text(exercise.name),
                           subtitle: Text(exercise.muscleGroup),
-                          value: isSelected,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              if (value == true) {
-                                _selectedExerciseIds.add(exercise.id);
-                              } else {
-                                _selectedExerciseIds.remove(exercise.id);
-                              }
-                            });
-                          },
+                          trailing: IconButton(
+                            icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                            onPressed: () {
+                              setState(() {
+                                _selectedExercises.add(exercise);
+                              });
+                            },
+                          ),
                         );
                       },
                     ),
