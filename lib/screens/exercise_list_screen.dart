@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Necesitamos Provider
 import '../models/exercise.dart';
 import '../services/exercise_service.dart';
+import '../providers/workout_provider.dart'; // Y el WorkoutProvider
 import 'add_exercise_screen.dart';
 import 'edit_exercise_screen.dart';
-import 'active_workout_screen.dart';
-import 'package:provider/provider.dart';
-import '../providers/workout_provider.dart';
+import 'active_workout_screen.dart'; // Y la pantalla de entrenamiento
 
 class ExerciseListScreen extends StatefulWidget {
   const ExerciseListScreen({super.key});
@@ -15,13 +15,9 @@ class ExerciseListScreen extends StatefulWidget {
 }
 
 class _ExerciseListScreenState extends State<ExerciseListScreen> {
-  // Ya no necesitamos un Future, el StreamBuilder se encargará de todo.
   final ExerciseService _exerciseService = ExerciseService();
 
-  // ELIMINADO: Ya no necesitamos initState, _loadExercises, ni _refresh. ¡Código más limpio!
-
   void _deleteExercise(String id) async {
-    // Mostramos un diálogo de confirmación para una mejor UX.
     final bool? shouldDelete = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -46,13 +42,10 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ejercicio eliminado')),
       );
-      // ELIMINADO: La llamada a _refresh() ya no es necesaria.
     }
   }
 
   void _editExercise(Exercise exercise) {
-    // La navegación a la pantalla de edición no necesita cambios.
-    // El StreamBuilder se encargará de reflejar la actualización al volver.
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => EditExerciseScreen(exercise: exercise),
@@ -61,15 +54,10 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
   }
 
   void _navigateToAddScreen() {
-    // Navegamos y ya está. No necesitamos esperar (`await`) ni refrescar.
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const AddExerciseScreen()),
     );
   }
-
-  // En lib/screens/exercise_list_screen.dart
-
-// ... (El resto del archivo no cambia)
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +82,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                   Icon(Icons.list_alt_rounded, size: 80, color: Colors.grey),
                   SizedBox(height: 16),
                   Text('Aún no tienes ejercicios', style: TextStyle(fontSize: 18)),
-                  Text('Toca un ejercicio para iniciar una rutina', style: TextStyle(color: Colors.grey)),
+                  Text('Toca un ejercicio para iniciar una rutina rápida', style: TextStyle(color: Colors.grey)),
                   Text('o añade uno nuevo con el botón +', style: TextStyle(color: Colors.grey)),
                 ],
               )
@@ -109,24 +97,23 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: ListTile(
+                  leading: const Icon(Icons.fitness_center_outlined, color: Colors.blue, size: 30),
                   title: Text(ex.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(ex.muscleGroup),
-                  // --- CAMBIO AQUÍ ---
-                  // Añadimos la acción onTap para iniciar el entrenamiento.
-                 onTap: () {
-  // --- CAMBIO AQUÍ ---
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      // Envolvemos la pantalla de entrenamiento con el Provider
-      builder: (_) => ChangeNotifierProvider(
-        // Creamos una NUEVA instancia del provider cada vez que empezamos un entrenamiento
-        create: (context) => WorkoutProvider(startingExercise: ex),
-        // El hijo es nuestra pantalla, que ahora tendrá acceso al Provider
-        child: const ActiveWorkoutScreen(),
-      ),
-    ),
-  );
-},
+                  // --- CORRECCIÓN PRINCIPAL AQUÍ ---
+                  // Al tocar un ejercicio, iniciamos un entrenamiento con una rutina de 1 solo elemento.
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        // Envolvemos la pantalla de entrenamiento con el Provider
+                        builder: (_) => ChangeNotifierProvider(
+                          // Creamos el WorkoutProvider pasándole una lista que SOLO contiene el ejercicio tocado
+                          create: (context) => WorkoutProvider(routineExercises: [ex]),
+                          child: const ActiveWorkoutScreen(),
+                        ),
+                      ),
+                    );
+                  },
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -155,6 +142,4 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       ),
     );
   }
-  
 }
-

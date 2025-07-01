@@ -1,15 +1,11 @@
-// lib/screens/active_workout_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Para obtener el userId
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../providers/workout_provider.dart';
-import '../models/workout_set.dart';
 
 class ActiveWorkoutScreen extends StatefulWidget {
-  // Ya no necesita recibir el ejercicio, lo tomará del Provider
   const ActiveWorkoutScreen({super.key});
 
   @override
@@ -20,7 +16,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   final _formKey = GlobalKey<FormState>();
   final _repsController = TextEditingController();
   final _weightController = TextEditingController();
-  bool _isFinishing = false; // Para mostrar un loader al guardar
+  bool _isFinishing = false;
 
   @override
   void dispose() {
@@ -30,15 +26,10 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   }
 
   void _addSet(WorkoutProvider provider) {
-    // Validamos que los campos no estén vacíos
     if (_formKey.currentState?.validate() ?? false) {
       final reps = int.tryParse(_repsController.text) ?? 0;
       final weight = double.tryParse(_weightController.text) ?? 0.0;
-
-      // Llamamos al método del provider para que maneje la lógica
       provider.addSet(reps, weight);
-
-      // Limpiamos los campos y quitamos el foco para la siguiente serie
       _repsController.clear();
       _weightController.clear();
       FocusScope.of(context).unfocus();
@@ -47,37 +38,26 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
 
   Future<void> _finishWorkout(WorkoutProvider provider) async {
     final user = context.read<User?>();
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: No se pudo identificar al usuario.')),
-      );
-      return;
-    }
-
+    if (user == null) return;
     setState(() => _isFinishing = true);
-
     try {
       await provider.finishWorkout(user.uid);
       if (!mounted) return;
-      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('¡Entrenamiento guardado con éxito!')),
       );
-      Navigator.of(context).pop(); // Volvemos a la lista de ejercicios
+      Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al guardar: $e')),
       );
     } finally {
-      if(mounted) {
-        setState(() => _isFinishing = false);
-      }
+      if (mounted) setState(() => _isFinishing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Usamos context.watch para que la UI se reconstruya cuando cambie el estado
     final provider = context.watch<WorkoutProvider>();
     final currentExercise = provider.currentExercise;
     // Obtenemos la lista de series del ejercicio actual
@@ -85,18 +65,19 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentExercise.name),
+        title: Text('${provider.currentExerciseNumber}/${provider.totalExercises} - ${currentExercise.name}'),
         actions: [
-          // Mostramos un loader o el botón de finalizar
           if (_isFinishing)
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
             )
           else
-            TextButton(
+            // El botón de finalizar ahora es un icono
+            IconButton(
+              icon: const Icon(Icons.check_circle),
               onPressed: () => _finishWorkout(provider),
-              child: const Text('FINALIZAR'),
+              tooltip: 'Finalizar Entrenamiento',
             )
         ],
       ),
@@ -107,7 +88,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // --- Entradas para Reps y Peso ---
+              // ... (Campos de texto y botón de añadir serie no cambian)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -132,8 +113,6 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-
-              // --- Botón para Añadir Serie ---
               ElevatedButton.icon(
                 onPressed: () => _addSet(provider),
                 icon: const Icon(Icons.add),
@@ -145,8 +124,6 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
               ),
               const SizedBox(height: 24),
               const Divider(),
-
-              // --- Lista de Series Agregadas ---
               Text('Series Completadas', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               if (sets.isEmpty)
@@ -155,10 +132,9 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                   child: Text('Aún no has añadido ninguna serie.'),
                 ))
               else
-                // Usamos un ListView para mostrar las series dinámicamente
                 ListView.builder(
-                  shrinkWrap: true, // Para que el ListView no ocupe toda la pantalla
-                  physics: const NeverScrollableScrollPhysics(), // Para que no haga scroll por sí mismo
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: sets.length,
                   itemBuilder: (context, index) {
                     final set = sets[index];
@@ -167,11 +143,23 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                         leading: CircleAvatar(child: Text('${index + 1}')),
                         title: Text('${set.reps} reps', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('${set.weight} kg'),
-                        // Aquí podríamos añadir un botón para eliminar la serie
                       ),
                     );
                   },
                 ),
+              const SizedBox(height: 24),
+              
+              // --- BOTÓN PARA SIGUIENTE EJERCICIO ---
+              // Solo se muestra si no es el último ejercicio
+              if (!provider.isLastExercise)
+                OutlinedButton.icon(
+                  onPressed: () => provider.nextExercise(),
+                  icon: const Icon(Icons.skip_next_rounded),
+                  label: const Text('Siguiente Ejercicio'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                )
             ],
           ),
         ),

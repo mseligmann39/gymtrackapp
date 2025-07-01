@@ -1,79 +1,84 @@
-// lib/providers/workout_provider.dart
-
 import 'package:flutter/material.dart';
 import '../models/exercise.dart';
 import '../models/logged_exercise.dart';
 import '../models/workout_set.dart';
 import '../models/workout_session.dart';
-import '../services/workout_service.dart'; // Crearemos este servicio a continuación
+import '../services/workout_service.dart';
 
 class WorkoutProvider with ChangeNotifier {
   final WorkoutService _workoutService = WorkoutService();
 
-  // Estado del entrenamiento actual
-  DateTime _startTime; // Para saber cuándo empezó la sesión
-  final List<LoggedExercise> _loggedExercises = []; // Lista de ejercicios completados en la sesión
-  Exercise _currentExercise; // El ejercicio que se está haciendo ahora
+  // --- NUEVO ESTADO ---
+  final List<Exercise> _routineExercises; // La lista completa de ejercicios de la rutina
+  int _currentExerciseIndex = 0; // El índice del ejercicio que estamos haciendo
 
-  // Getters públicos para que la UI pueda leer el estado
-  Exercise get currentExercise => _currentExercise;
+  // Estado que ya teníamos
+  DateTime _startTime;
+  final List<LoggedExercise> _loggedExercises = [];
+
+  // --- GETTERS ACTUALIZADOS ---
+  // El ejercicio actual ahora se obtiene de la lista usando el índice
+  Exercise get currentExercise => _routineExercises[_currentExerciseIndex];
+  int get currentExerciseNumber => _currentExerciseIndex + 1;
+  int get totalExercises => _routineExercises.length;
+  bool get isLastExercise => _currentExerciseIndex == _routineExercises.length - 1;
   List<LoggedExercise> get loggedExercises => _loggedExercises;
 
-  // Constructor: se llama cuando se inicia el entrenamiento
-  WorkoutProvider({required Exercise startingExercise})
-      : _currentExercise = startingExercise,
+  // El constructor ahora acepta una LISTA de ejercicios
+  WorkoutProvider({required List<Exercise> routineExercises})
+      : _routineExercises = routineExercises,
         _startTime = DateTime.now() {
-    // Preparamos el primer ejercicio para registrarlo
-    _startNewExercise(startingExercise);
+    // Si la lista no está vacía, preparamos el primer ejercicio
+    if (_routineExercises.isNotEmpty) {
+      _startNewLoggedExercise();
+    }
   }
 
-  // Prepara un nuevo ejercicio para empezar a registrarle series
-  void _startNewExercise(Exercise exercise) {
-    _currentExercise = exercise;
-    // Añadimos un LoggedExercise vacío a la lista, listo para recibir series
+  // Prepara un LoggedExercise vacío para el ejercicio actual
+  void _startNewLoggedExercise() {
     _loggedExercises.add(
       LoggedExercise(
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        sets: [], // La lista de series empieza vacía
+        exerciseId: currentExercise.id,
+        exerciseName: currentExercise.name,
+        sets: [],
       ),
     );
-    notifyListeners(); // Notifica a la UI que el ejercicio actual ha cambiado
+    notifyListeners();
   }
 
-  // --- MÉTODOS PRINCIPALES QUE LA UI LLAMARÁ ---
+  // --- MÉTODO NUEVO ---
+  // Pasa al siguiente ejercicio de la rutina
+  void nextExercise() {
+    if (!isLastExercise) {
+      _currentExerciseIndex++;
+      _startNewLoggedExercise(); // Prepara el nuevo ejercicio para registrar series
+      notifyListeners();
+    }
+  }
 
-  // 1. Añadir una nueva serie al ejercicio actual
+  // La lógica para añadir una serie no cambia, siempre la añade al último
+  // LoggedExercise de la lista (que es el actual)
   void addSet(int reps, double weight) {
     if (_loggedExercises.isEmpty) return;
-
     final newSet = WorkoutSet(
       reps: reps,
       weight: weight,
       timestamp: DateTime.now(),
     );
-
-    // Añadimos la nueva serie al último ejercicio de la lista (el actual)
     _loggedExercises.last.sets.add(newSet);
-
-    // Notificamos a los widgets que escuchan para que se redibujen
     notifyListeners();
   }
 
-  // 2. Finalizar y guardar el entrenamiento
+  // La lógica para finalizar el entrenamiento tampoco cambia
   Future<void> finishWorkout(String userId) async {
     if (_loggedExercises.isEmpty || _loggedExercises.every((e) => e.sets.isEmpty)) {
-      // No guardar si no se hizo ningún ejercicio
       return;
     }
-
     final session = WorkoutSession(
       userId: userId,
       date: _startTime,
-      // Filtramos por si algún ejercicio se quedó sin series
       exercises: _loggedExercises.where((e) => e.sets.isNotEmpty).toList(),
     );
-
     await _workoutService.saveWorkoutSession(session);
   }
 }
