@@ -1,9 +1,11 @@
-// lib/screens/history_screen.dart
+// En lib/screens/history_screen.dart
 
+// Asegúrate de tener esta importación para la nueva pantalla
+import 'session_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // Para formatear fechas
+import 'package:intl/intl.dart';
 
 import '../models/workout_session.dart';
 import '../services/workout_service.dart';
@@ -50,6 +52,7 @@ class HistoryScreen extends StatelessWidget {
           }
 
           final sessions = snapshot.data!;
+          // --- CAMBIO PRINCIPAL AQUÍ ---
           return ListView.builder(
             itemCount: sessions.length,
             itemBuilder: (context, index) {
@@ -59,12 +62,20 @@ class HistoryScreen extends StatelessWidget {
                 child: ListTile(
                   leading: const Icon(Icons.event_note, color: Colors.deepPurple),
                   title: Text(
-                    // Formateamos la fecha para que sea legible, ej: "Lunes, 24 de junio"
                     DateFormat.yMMMMEEEEd('es_ES').format(session.date),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text('${session.exercises.length} ejercicios completados'),
-                  // Podríamos añadir onTap para ver los detalles de la sesión
+                  trailing: const Icon(Icons.chevron_right), // Icono para indicar que es navegable
+                  // Al tocar, navegamos a la pantalla de detalle
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        // Le pasamos la sesión seleccionada a la nueva pantalla
+                        builder: (_) => SessionDetailScreen(session: session),
+                      ),
+                    );
+                  },
                 ),
               );
             },

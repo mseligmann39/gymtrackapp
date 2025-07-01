@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'exercise_list_screen.dart';
 import 'history_screen.dart'; // Importamos la nueva pantalla
+import 'routines_list_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -24,7 +25,10 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('GimFit', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'GimFit',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -37,16 +41,13 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         children: [
           // --- Saludo al usuario ---
-          Text(
-            '¡Hola,',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
+          Text('¡Hola,', style: Theme.of(context).textTheme.headlineSmall),
           Text(
             user?.displayName ?? user?.email ?? 'Campeón/a',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
-                ),
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple,
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -95,7 +96,9 @@ class HomeScreen extends StatelessWidget {
                   color: Colors.blue,
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ExerciseListScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const ExerciseListScreen(),
+                      ),
                     );
                   },
                 ),
@@ -103,6 +106,26 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           // Aquí podríamos añadir más tarjetas en el futuro:
+          // En home_screen.dart, dentro del Row de las tarjetas secundarias:
+
+          // ... (tarjeta de Historial)
+          const SizedBox(width: 16),
+          // --- AÑADE ESTA NUEVA TARJETA ---
+          Expanded(
+            child: _buildActionCard(
+              context: context,
+              title: 'Rutinas',
+              subtitle: 'Gestiona tus planes',
+              icon: Icons.assignment,
+              color: Colors.green,
+              onTap: () {
+                // Navegamos a la nueva pantalla de lista de rutinas
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RoutinesListScreen()),
+                );
+              },
+            ),
+          ),
           // - "Mi Plan Semanal"
           // - "Estadísticas de Progreso"
         ],
@@ -120,7 +143,8 @@ class HomeScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Card(
-      clipBehavior: Clip.antiAlias, // Para que el InkWell no se salga de los bordes redondeados
+      clipBehavior: Clip
+          .antiAlias, // Para que el InkWell no se salga de los bordes redondeados
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
