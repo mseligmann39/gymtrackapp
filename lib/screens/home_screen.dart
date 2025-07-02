@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'exercise_list_screen.dart';
 import 'history_screen.dart';
 import 'routines_list_screen.dart';
+import 'stats_screen.dart'; // <-- AÑADE ESTA IMPORTACIÓN
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,7 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // ... (Saludo y tarjeta de Iniciar Entrenamiento)
           Text(
             '¡Hola,',
             style: Theme.of(context).textTheme.headlineSmall,
@@ -46,8 +48,6 @@ class HomeScreen extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 24),
-
-          // --- TARJETA DE ACCIÓN PRINCIPAL (INICIAR ENTRENAMIENTO) ---
           _buildActionCard(
             context: context,
             title: 'Iniciar Entrenamiento',
@@ -55,17 +55,15 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.play_circle_fill,
             color: Colors.deepPurple,
             onTap: () {
-              // Navega a la lista de rutinas en MODO SELECCIÓN
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const RoutinesListScreen(isSelectionMode: true)),
               );
             },
           ),
           const SizedBox(height: 16),
-
-          // --- Tarjetas de Acciones Secundarias ---
           Row(
             children: [
+              // ... (Tarjetas de Historial y Ejercicios)
               Expanded(
                 child: _buildActionCard(
                   context: context,
@@ -98,7 +96,6 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // --- Tarjeta para GESTIONAR Rutinas ---
           _buildActionCard(
             context: context,
             title: 'Mis Rutinas',
@@ -106,9 +103,23 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.assignment,
             color: Colors.green,
             onTap: () {
-              // Navega a la lista de rutinas en MODO GESTIÓN (por defecto)
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const RoutinesListScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          // --- NUEVA TARJETA DE ESTADÍSTICAS ---
+          _buildActionCard(
+            context: context,
+            title: 'Mi Progreso',
+            subtitle: 'Visualiza tus estadísticas',
+            icon: Icons.bar_chart,
+            color: Colors.redAccent,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const StatsScreen()),
               );
             },
           ),
@@ -117,7 +128,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Widget reutilizable para crear las tarjetas
+  // ... (El método _buildActionCard no cambia)
   Widget _buildActionCard({
     required BuildContext context,
     required String title,
