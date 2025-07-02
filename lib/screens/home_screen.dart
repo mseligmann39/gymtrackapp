@@ -1,11 +1,9 @@
-// lib/screens/home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 import 'exercise_list_screen.dart';
-import 'history_screen.dart'; // Importamos la nueva pantalla
+import 'history_screen.dart';
 import 'routines_list_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -20,15 +18,11 @@ class HomeScreen extends StatelessWidget {
     final user = context.watch<User?>();
 
     return Scaffold(
-      // Un fondo sutil para darle un toque más premium
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'GimFit',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('GimFit', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -40,27 +34,30 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // --- Saludo al usuario ---
-          Text('¡Hola,', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            '¡Hola,',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           Text(
             user?.displayName ?? user?.email ?? 'Campeón/a',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
           ),
           const SizedBox(height: 24),
 
-          // --- Tarjeta de Acción Principal: Iniciar Entrenamiento ---
+          // --- TARJETA DE ACCIÓN PRINCIPAL (INICIAR ENTRENAMIENTO) ---
           _buildActionCard(
             context: context,
             title: 'Iniciar Entrenamiento',
-            subtitle: 'Elige un ejercicio y empieza a registrar',
+            subtitle: 'Elige una rutina para empezar',
             icon: Icons.play_circle_fill,
             color: Colors.deepPurple,
             onTap: () {
+              // Navega a la lista de rutinas en MODO SELECCIÓN
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ExerciseListScreen()),
+                MaterialPageRoute(builder: (_) => const RoutinesListScreen(isSelectionMode: true)),
               );
             },
           ),
@@ -69,7 +66,6 @@ class HomeScreen extends StatelessWidget {
           // --- Tarjetas de Acciones Secundarias ---
           Row(
             children: [
-              // --- Tarjeta para ver el Historial ---
               Expanded(
                 child: _buildActionCard(
                   context: context,
@@ -78,7 +74,6 @@ class HomeScreen extends StatelessWidget {
                   icon: Icons.history,
                   color: Colors.orange,
                   onTap: () {
-                    // Navegamos a la nueva pantalla de historial
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const HistoryScreen()),
                     );
@@ -86,7 +81,6 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              // --- Tarjeta para gestionar Ejercicios ---
               Expanded(
                 child: _buildActionCard(
                   context: context,
@@ -96,44 +90,34 @@ class HomeScreen extends StatelessWidget {
                   color: Colors.blue,
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ExerciseListScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const ExerciseListScreen()),
                     );
                   },
                 ),
               ),
             ],
           ),
-          // Aquí podríamos añadir más tarjetas en el futuro:
-          // En home_screen.dart, dentro del Row de las tarjetas secundarias:
-
-          // ... (tarjeta de Historial)
-          const SizedBox(width: 16),
-          // --- AÑADE ESTA NUEVA TARJETA ---
-          Expanded(
-            child: _buildActionCard(
-              context: context,
-              title: 'Rutinas',
-              subtitle: 'Gestiona tus planes',
-              icon: Icons.assignment,
-              color: Colors.green,
-              onTap: () {
-                // Navegamos a la nueva pantalla de lista de rutinas
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RoutinesListScreen()),
-                );
-              },
-            ),
+          const SizedBox(height: 16),
+          // --- Tarjeta para GESTIONAR Rutinas ---
+          _buildActionCard(
+            context: context,
+            title: 'Mis Rutinas',
+            subtitle: 'Crea y edita tus planes',
+            icon: Icons.assignment,
+            color: Colors.green,
+            onTap: () {
+              // Navega a la lista de rutinas en MODO GESTIÓN (por defecto)
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const RoutinesListScreen()),
+              );
+            },
           ),
-          // - "Mi Plan Semanal"
-          // - "Estadísticas de Progreso"
         ],
       ),
     );
   }
 
-  // --- Widget reutilizable para crear las tarjetas ---
+  // Widget reutilizable para crear las tarjetas
   Widget _buildActionCard({
     required BuildContext context,
     required String title,
@@ -143,8 +127,7 @@ class HomeScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Card(
-      clipBehavior: Clip
-          .antiAlias, // Para que el InkWell no se salga de los bordes redondeados
+      clipBehavior: Clip.antiAlias,
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(

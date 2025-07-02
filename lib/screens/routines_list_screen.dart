@@ -10,7 +10,10 @@ import 'create_edit_routine_screen.dart';
 import 'active_workout_screen.dart';
 
 class RoutinesListScreen extends StatefulWidget {
-  const RoutinesListScreen({super.key});
+  // NUEVO: Parámetro para definir el modo de la pantalla
+  final bool isSelectionMode;
+
+  const RoutinesListScreen({super.key, this.isSelectionMode = false});
 
   @override
   State<RoutinesListScreen> createState() => _RoutinesListScreenState();
@@ -23,8 +26,8 @@ class _RoutinesListScreenState extends State<RoutinesListScreen> {
   // Estado para mostrar un loader al iniciar una rutina
   String? _startingRoutineId;
 
-  // Navega a la pantalla de creación/edición
-  void _editRoutine(Routine? routine) {
+  // Navega a la pantalla de edición (solo en modo gestión)
+  void _manageRoutine(Routine? routine) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CreateEditRoutineScreen(routineToEdit: routine),
@@ -32,7 +35,7 @@ class _RoutinesListScreenState extends State<RoutinesListScreen> {
     );
   }
 
-  // Lógica para iniciar el entrenamiento
+  // Lógica para iniciar el entrenamiento (solo en modo selección)
   Future<void> _startWorkout(Routine routine) async {
     if (routine.exerciseIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -44,22 +47,18 @@ class _RoutinesListScreenState extends State<RoutinesListScreen> {
     setState(() => _startingRoutineId = routine.id);
 
     try {
-      // 1. Obtenemos todos los ejercicios del usuario
       final allExercises = await _exerciseService.getExercises();
-
-      // 2. Filtramos para quedarnos solo con los que están en la rutina
       final routineExercises = allExercises
           .where((exercise) => routine.exerciseIds.contains(exercise.id))
           .toList();
 
-      // (Opcional) Mantener el orden de la rutina si es importante
+      // Mantener el orden de la rutina
       routineExercises.sort((a, b) => 
         routine.exerciseIds.indexOf(a.id).compareTo(routine.exerciseIds.indexOf(b.id))
       );
       
       if (!mounted) return;
 
-      // 3. Navegamos a la pantalla de entrenamiento
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
@@ -90,7 +89,10 @@ class _RoutinesListScreenState extends State<RoutinesListScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis Rutinas')),
+      appBar: AppBar(
+        // El título cambia según el modo
+        title: Text(widget.isSelectionMode ? 'Seleccionar Rutina' : 'Mis Rutinas'),
+      ),
       body: StreamBuilder<List<Routine>>(
         stream: _routineService.getRoutinesStream(user.uid),
         builder: (context, snapshot) {
@@ -101,7 +103,23 @@ class _RoutinesListScreenState extends State<RoutinesListScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Aún no has creado ninguna rutina.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.list_alt_rounded, size: 80, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    widget.isSelectionMode 
+                      ? 'No tienes rutinas para iniciar.' 
+                      : 'Aún no has creado ninguna rutina.', 
+                    style: TextStyle(fontSize: 18)
+                  ),
+                  if (!widget.isSelectionMode)
+                    const Text('Usa el botón + para crear tu primer plan.', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
           }
 
           final routines = snapshot.data!;
@@ -116,25 +134,41 @@ class _RoutinesListScreenState extends State<RoutinesListScreen> {
                 child: ListTile(
                   leading: isLoading 
                       ? const CircularProgressIndicator()
-                      : const Icon(Icons.play_circle_outline, color: Colors.deepPurple, size: 40),
+                      : Icon(
+                          // El icono cambia según el modo
+                          widget.isSelectionMode ? Icons.play_circle_outline : Icons.assignment_outlined,
+                          color: widget.isSelectionMode ? Colors.deepPurple : Colors.green,
+                          size: 40
+                        ),
                   title: Text(routine.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('${routine.exerciseIds.length} ejercicios'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _editRoutine(routine),
-                  ),
-                  onTap: isLoading ? null : () => _startWorkout(routine),
+                  // El botón de la derecha cambia según el modo
+                  trailing: widget.isSelectionMode
+                      ? null // Sin botón en modo selección
+                      : IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _manageRoutine(routine),
+                        ),
+                  onTap: isLoading
+                      ? null
+                      // La acción de tocar depende del modo
+                      : () => widget.isSelectionMode
+                          ? _startWorkout(routine)
+                          : _manageRoutine(routine),
                 ),
               );
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _editRoutine(null),
-        child: const Icon(Icons.add),
-        tooltip: 'Crear Rutina',
-      ),
+      // El botón flotante solo aparece en modo gestión
+      floatingActionButton: widget.isSelectionMode
+          ? null
+          : FloatingActionButton(
+              onPressed: () => _manageRoutine(null),
+              child: const Icon(Icons.add),
+              tooltip: 'Crear Rutina',
+            ),
     );
   }
 }
