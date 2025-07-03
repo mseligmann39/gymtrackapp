@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'routines_list_screen.dart';
 import 'history_screen.dart';
-import 'stats_screen.dart';
+import 'profile_screen.dart'; // Importamos la nueva pantalla de perfil
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -14,12 +14,13 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // Lista de las pantallas que se mostrarán en cada pestaña
+  // --- CAMBIO AQUÍ ---
+  // Actualizamos la lista de pantallas para incluir el perfil
   static const List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
-    RoutinesListScreen(isSelectionMode: true), // Para iniciar un entrenamiento
+    RoutinesListScreen(isSelectionMode: true),
     HistoryScreen(),
-    StatsScreen(),
+    ProfileScreen(), // Reemplazamos StatsScreen con ProfileScreen
   ];
 
   void _onItemTapped(int index) {
@@ -35,8 +36,9 @@ class _MainScreenState extends State<MainScreen> {
         child: _widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        // Usamos 'fixed' para que todos los items sean siempre visibles
-        type: BottomNavigationBarType.fixed, 
+        type: BottomNavigationBarType.fixed,
+        // --- CAMBIO AQUÍ ---
+        // Actualizamos los items de la barra de navegación
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -54,9 +56,9 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Historial',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
-            label: 'Progreso',
+            icon: Icon(Icons.person_outline), // Icono de perfil
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil', // Etiqueta de perfil
           ),
         ],
         currentIndex: _selectedIndex,
