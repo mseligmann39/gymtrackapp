@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-
-import 'exercise_list_screen.dart';
-import 'history_screen.dart';
-import 'routines_list_screen.dart';
-import 'stats_screen.dart'; // <-- AÑADE ESTA IMPORTACIÓN
+import 'management_screen.dart'; // Importamos la nueva pantalla
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -19,12 +15,19 @@ class HomeScreen extends StatelessWidget {
     final user = context.watch<User?>();
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('GimFit', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Inicio'),
         actions: [
+          // --- ICONO DE GESTIÓN ---
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ManagementScreen()),
+              );
+            },
+            tooltip: 'Gestión',
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _signOut(context),
@@ -32,143 +35,32 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // ... (Saludo y tarjeta de Iniciar Entrenamiento)
-          Text(
-            '¡Hola,',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          Text(
-            user?.displayName ?? user?.email ?? 'Campeón/a',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
-                ),
-          ),
-          const SizedBox(height: 24),
-          _buildActionCard(
-            context: context,
-            title: 'Iniciar Entrenamiento',
-            subtitle: 'Elige una rutina para empezar',
-            icon: Icons.play_circle_fill,
-            color: Colors.deepPurple,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const RoutinesListScreen(isSelectionMode: true)),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              // ... (Tarjetas de Historial y Ejercicios)
-              Expanded(
-                child: _buildActionCard(
-                  context: context,
-                  title: 'Historial',
-                  subtitle: 'Revisa tus sesiones pasadas',
-                  icon: Icons.history,
-                  color: Colors.orange,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildActionCard(
-                  context: context,
-                  title: 'Ejercicios',
-                  subtitle: 'Crea y edita tus movimientos',
-                  icon: Icons.fitness_center,
-                  color: Colors.blue,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ExerciseListScreen()),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildActionCard(
-            context: context,
-            title: 'Mis Rutinas',
-            subtitle: 'Crea y edita tus planes',
-            icon: Icons.assignment,
-            color: Colors.green,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const RoutinesListScreen()),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          
-          // --- NUEVA TARJETA DE ESTADÍSTICAS ---
-          _buildActionCard(
-            context: context,
-            title: 'Mi Progreso',
-            subtitle: 'Visualiza tus estadísticas',
-            icon: Icons.bar_chart,
-            color: Colors.redAccent,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const StatsScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ... (El método _buildActionCard no cambia)
-  Widget _buildActionCard({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [color.withOpacity(0.8), color],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 40, color: Colors.white),
-              const SizedBox(height: 16),
+              const Icon(Icons.waving_hand, size: 60, color: Colors.amber),
+              const SizedBox(height: 24),
               Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.white,
-                ),
+                '¡Bienvenido de nuevo,',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
               Text(
-                subtitle,
-                style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                user?.displayName ?? user?.email?.split('@').first ?? 'Campeón/a',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              const Text(
+                'Usa la barra de navegación de abajo para empezar a entrenar o ver tu progreso.',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
